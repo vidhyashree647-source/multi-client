@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetSocket Pro - Multi-Client Chat Server Simulator</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+
+    <!-- LOGIN MODAL / CONNECT SCREEN -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-card glass-panel glow-border">
+            <div class="modal-header">
+                <div class="brand-logo">
+                    <svg class="network-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="2" width="6" height="6" rx="1"/>
+                        <rect x="16" y="2" width="6" height="6" rx="1"/>
+                        <rect x="9" y="16" width="6" height="6" rx="1"/>
+                        <path d="M5 8v3a2 2 0 002 2h10a2 2 0 002-2V8"/>
+                        <path d="M12 13v3"/>
+                    </svg>
+                    <h2>NetSocket <span>Pro</span></h2>
+                </div>
+                <p class="subtitle">Multi-Client Chat Server Simulator — Computer Networks Project</p>
+                <div class="simulation-badge">
+                    <span class="pulse-dot warning"></span> Demo Mode — Client-Server Communication Simulated
+                </div>
+            </div>
+
+            <form id="login-form" onsubmit="event.preventDefault(); handleLogin();">
+                <div class="form-group">
+                    <label for="input-username">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        Username / Client Name
+                    </label>
+                    <input type="text" id="input-username" placeholder="e.g. Shyam" value="Shyam" required autocomplete="off">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="input-server-ip">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                            Server IP / Host
+                        </label>
+                        <input type="text" id="input-server-ip" placeholder="127.0.0.1" value="127.0.0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="input-server-port">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            Port
+                        </label>
+                        <input type="number" id="input-server-port" placeholder="8080" value="8080" min="1024" max="65535" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="input-protocol">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        Transport Protocol
+                    </label>
+                    <select id="input-protocol">
+                        <option value="TCP/WebSocket (Simulated)" selected>WebSocket over TCP (Full Duplex)</option>
+                        <option value="TCP Socket (Simulated)">Raw TCP Socket (Stream)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                    Connect to Chat Server
+                </button>
+            </form>
+
+            <div class="modal-footer">
+                <span class="info-tag">💡 Demonstrates TCP/Socket broadcast, state management & client simulation.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="app-layout">
+
+        <!-- TOP BAR / HEADER -->
+        <header class="top-header glass-panel">
+            <div class="header-left">
+                <button id="mobile-menu-toggle" class="btn-icon" aria-label="Toggle Navigation">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+                <div class="app-brand">
+                    <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="2" width="6" height="6" rx="1"/>
+                        <rect x="16" y="2" width="6" height="6" rx="1"/>
+                        <rect x="9" y="16" width="6" height="6" rx="1"/>
+                        <path d="M5 8v3a2 2 0 002 2h10a2 2 0 002-2V8"/>
+                        <path d="M12 13v3"/>
+                    </svg>
+                    <h1>NetSocket <span>Pro</span></h1>
+                </div>
+                <div class="demo-tag desktop-only">
+                    <span class="pulse-dot warning"></span> Demo Mode — Client-Server Communication Simulated
+                </div>
+            </div>
+
+            <div class="header-right">
+                <!-- Server Status Indicator -->
+                <div class="status-pill-group">
+                    <div id="status-pill" class="status-pill connected">
+                        <span class="pulse-dot green" id="status-dot"></span>
+                        <span id="status-text">Connected</span>
+                    </div>
+                </div>
+
+                <!-- Session Meta Info -->
+                <div class="session-info glass-card">
+                    <div class="session-detail">
+                        <span class="label">User:</span>
+                        <span id="display-user-name" class="value highlight">Shyam</span>
+                    </div>
+                    <div class="session-divider"></div>
+                    <div class="session-detail">
+                        <span class="label">Server:</span>
+                        <span id="display-server-address" class="value">127.0.0.1:8080</span>
+                    </div>
+                </div>
+
+                <!-- Quick Action Buttons -->
+                <div class="header-actions">
+                    <button class="btn btn-sm btn-outline-danger" onclick="disconnectServer()" title="Disconnect session">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                        <span class="desktop-only">Disconnect</span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="openLoginModal()" title="Change connection settings">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT BODY -->
+        <div class="app-body">
+
+            <!-- SIDEBAR NAVIGATION -->
+            <nav id="app-sidebar" class="app-sidebar glass-panel">
+                <div class="sidebar-menu">
+                    <button class="nav-item active" data-view="chat-view" onclick="switchView('chat-view', this)">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        <span>Chat Room</span>
+                    </button>
+                    <button class="nav-item" data-view="dashboard-view" onclick="switchView('dashboard-view', this)">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="nav-item" data-view="clients-view" onclick="switchView('clients-view', this)">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        <span>Clients Manager</span>
+                    </button>
+                    <button class="nav-item" data-view="server-view" onclick="switchView('server-view', this)">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                        <span>Server Controls</span>
+                    </button>
+                    <button class="nav-item" data-view="network-view" onclick="switchView('network-view', this)">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        <span>Network Info</span>
+                    </button>
+                    <button class="nav-item" data-view="logs-view" onclick="switchView('logs-view', this)">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                        <span>Activity Logs</span>
+                    </button>
+                    <button class="nav-item" data-view="settings-view" onclick="switchView('settings-view', this)">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        <span>Settings</span>
+                    </button>
+                </div>
+
+                <!-- Server Control Box in Sidebar -->
+                <div class="sidebar-server-box glass-card">
+                    <div class="server-box-header">
+                        <span class="box-title">SERVER CONTROLS</span>
+                        <span id="quick-server-status" class="status-indicator online">ONLINE</span>
+                    </div>
+                    <div class="server-box-actions">
+                        <button class="btn btn-xs btn-success" onclick="connectServer()">Connect</button>
+                        <button class="btn btn-xs btn-danger" onclick="disconnectServer()">Disconnect</button>
+                        <button class="btn btn-xs btn-warning" onclick="restartServer()">Restart</button>
+                    </div>
+                    <div class="uptime-counter">
+                        <span>Server Uptime:</span>
+                        <strong id="sidebar-uptime">00:00:00</strong>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- MAIN VIEW CONTAINER -->
+            <main class="app-content">
+
+                <!-- 1. CHAT ROOM VIEW -->
+                <section id="chat-view" class="view-panel active">
+                    <div class="chat-container">
+
+                        <!-- LEFT SIDEBAR: CLIENTS & SERVER STATUS -->
+                        <aside class="chat-sidebar glass-panel">
+                            
+                            <!-- Server Quick Specs -->
+                            <div class="sidebar-section">
+                                <div class="section-title">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                                    <span>SERVER STATUS</span>
+                                </div>
+                                <div class="server-mini-info">
+                                    <div class="info-row">
+                                        <span>Status:</span>
+                                        <span id="chat-server-status" class="text-success">🟢 Connected</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span>Active Clients:</span>
+                                        <span id="chat-active-count" class="badge badge-cyan">4 Active</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span>Host:Port:</span>
+                                        <span id="chat-host-port">127.0.0.1:8080</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Client Simulator Tool -->
+                            <div class="sidebar-section glow-section">
+                                <div class="section-title">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                                    <span>CLIENT SIMULATOR</span>
+                                </div>
+                                <p class="section-hint">Simulate incoming messages from other clients:</p>
+                                <div class="simulator-buttons">
+                                    <button class="btn btn-xs btn-outline-cyan" onclick="simulateClientMessage('Rahul')">
+                                        <span>+ Msg Rahul</span>
+                                    </button>
+                                    <button class="btn btn-xs btn-outline-cyan" onclick="simulateClientMessage('Priya')">
+                                        <span>+ Msg Priya</span>
+                                    </button>
+                                    <button class="btn btn-xs btn-outline-cyan" onclick="simulateClientMessage('Arjun')">
+                                        <span>+ Msg Arjun</span>
+                                    </button>
+                                </div>
+                                <div class="add-client-inline">
+                                    <input type="text" id="new-client-name" placeholder="Custom client name..." autocomplete="off">
+                                    <button class="btn btn-xs btn-primary" onclick="addCustomSimulatedClient()">Add</button>
+                                </div>
+                            </div>
+
+                            <!-- Connected Users List -->
+                            <div class="sidebar-section flex-expand">
+                                <div class="section-title">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                    <span>CONNECTED CLIENTS</span>
+                                    <span id="client-list-badge" class="count-badge">4</span>
+                                </div>
+                                <div id="connected-users-list" class="users-list">
+                                    <!-- Dynamic User Items populated by JS -->
+                                </div>
+                            </div>
+
+                        </aside>
+
+                        <!-- MAIN CHAT PANEL -->
+                        <div class="chat-main glass-panel">
+
+                            <!-- Chat Header Toolbar -->
+                            <div class="chat-header">
+                                <div class="channel-info">
+                                    <div class="channel-avatar">
+                                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                                    </div>
+                                    <div>
+                                        <h3 id="current-channel-title">Central Broadcast Server</h3>
+                                        <span class="channel-subtitle" id="channel-target-desc">Broadcasting to all connected TCP clients</span>
+                                    </div>
+                                </div>
+
+                                <div class="chat-actions">
+                                    <!-- Search Messages -->
+                                    <div class="search-box">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                        <input type="text" id="chat-search-input" placeholder="Search chat..." onkeyup="filterChatMessages()">
+                                    </div>
+
+                                    <!-- Clear Chat -->
+                                    <button class="btn btn-sm btn-icon-only btn-outline-secondary" onclick="clearChatMessages()" title="Clear chat history">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Server Broadcast Notice Banner -->
+                            <div id="broadcast-toast" class="broadcast-toast hidden">
+                                <span class="toast-icon">⚡</span>
+                                <span id="toast-message">Message broadcasted to 3 clients</span>
+                            </div>
+
+                            <!-- Messages Area -->
+                            <div id="chat-messages-container" class="messages-container">
+                                <!-- Dynamic Chat Bubbles & System Notifications -->
+                            </div>
+
+                            <!-- Input Control Bar -->
+                            <div class="chat-input-bar">
+                                <!-- Send To / Destination Selector (Broadcast vs Private) -->
+                                <div class="send-target-picker">
+                                    <label for="send-target-select">Send To:</label>
+                                    <select id="send-target-select" onchange="updateSendTarget()">
+                                        <option value="ALL" selected>📢 Everyone (Broadcast)</option>
+                                        <!-- Dynamically populated options for private messaging -->
+                                    </select>
+                                </div>
+
+                                <form id="chat-form" onsubmit="event.preventDefault(); sendMessage();" class="input-wrapper">
+                                    <div class="input-field-container">
+                                        <input type="text" id="chat-message-input" placeholder="Type a message to broadcast..." autocomplete="off" oninput="updateCharCounter()">
+                                        
+                                        <!-- Quick Emoji Bar Toggle -->
+                                        <button type="button" class="btn-emoji-toggle" onclick="toggleEmojiPicker()" title="Add Emoji">😊</button>
+                                    </div>
+
+                                    <div class="input-meta">
+                                        <span id="char-counter" class="char-counter">0 / 500</span>
+                                        <button type="submit" id="btn-send-msg" class="btn btn-primary btn-send">
+                                            <span>Send Packet</span>
+                                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <!-- Emoji Quick Selector Popup -->
+                                <div id="emoji-picker" class="emoji-picker glass-panel hidden">
+                                    <span onclick="insertEmoji('😊')">😊</span>
+                                    <span onclick="insertEmoji('👋')">👋</span>
+                                    <span onclick="insertEmoji('🚀')">🚀</span>
+                                    <span onclick="insertEmoji('💻')">💻</span>
+                                    <span onclick="insertEmoji('⚡')">⚡</span>
+                                    <span onclick="insertEmoji('🌐')">🌐</span>
+                                    <span onclick="insertEmoji('👍')">👍</span>
+                                    <span onclick="insertEmoji('🔥')">🔥</span>
+                                    <span onclick="insertEmoji('🎉')">🎉</span>
+                                    <span onclick="insertEmoji('🔒')">🔒</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. DASHBOARD VIEW -->
+                <section id="dashboard-view" class="view-panel">
+                    <div class="dashboard-grid">
+
+                        <div class="view-header">
+                            <h2>Server Statistics & Dashboard</h2>
+                            <p>Real-time analytics and metric performance of the central chat server.</p>
+                        </div>
+
+                        <!-- Metrics Cards Grid -->
+                        <div class="metrics-row">
+                            <div class="metric-card glass-card">
+                                <div class="metric-icon cyan">
+                                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                </div>
+                                <div class="metric-body">
+                                    <span class="metric-label">Active Clients</span>
+                                    <h3 id="stat-active-clients" class="metric-value">4</h3>
+                                    <span class="metric-sub text-success">🟢 Server Listening</span>
+                                </div>
+                            </div>
+
+                            <div class="metric-card glass-card">
+                                <div class="metric-icon blue">
+                                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                </div>
+                                <div class="metric-body">
+                                    <span class="metric-label">Messages Sent</span>
+                                    <h3 id="stat-messages-sent" class="metric-value">0</h3>
+                                    <span class="metric-sub">Packets transmitted</span>
+                                </div>
+                            </div>
+
+                            <div class="metric-card glass-card">
+                                <div class="metric-icon green">
+                                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                </div>
+                                <div class="metric-body">
+                                    <span class="metric-label">Messages Received</span>
+                                    <h3 id="stat-messages-recv" class="metric-value">0</h3>
+                                    <span class="metric-sub">Processed by server</span>
+                                </div>
+                            </div>
+
+                            <div class="metric-card glass-card">
+                                <div class="metric-icon purple">
+                                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                </div>
+                                <div class="metric-body">
+                                    <span class="metric-label">Server Uptime</span>
+                                    <h3 id="stat-uptime" class="metric-value">00:00:00</h3>
+                                    <span class="metric-sub">Continuous operation</span>
+                                </div>
+                            </div>
+
+                            <div class="metric-card glass-card">
+                                <div class="metric-icon emerald">
+                                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                                </div>
+                                <div class="metric-body">
+                                    <span class="metric-label">Total Connections</span>
+                                    <h3 id="stat-connections" class="metric-value">4</h3>
+                                    <span class="metric-sub">Successful handshakes</span>
+                                </div>
+                            </div>
+
+                            <div class="metric-card glass-card">
+                                <div class="metric-icon rose">
+                                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                                </div>
+                                <div class="metric-body">
+                                    <span class="metric-label">Disconnections</span>
+                                    <h3 id="stat-disconnections" class="metric-value">0</h3>
+                                    <span class="metric-sub">Closed sockets</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Traffic & System Info Panels -->
+                        <div class="dashboard-panels-row">
+                            <div class="dashboard-card glass-card flex-2">
+                                <div class="card-header">
+                                    <h4>
+                                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                                        Live Network Packet Flow Monitor
+                                    </h4>
+                                    <span class="live-tag">LIVE SIMULATION</span>
+                                </div>
+                                <div class="packet-visualizer">
+                                    <div class="visualizer-bar-group">
+                                        <div class="visualizer-bar" style="height: 40%"></div>
+                                        <div class="visualizer-bar" style="height: 75%"></div>
+                                        <div class="visualizer-bar" style="height: 55%"></div>
+                                        <div class="visualizer-bar" style="height: 90%"></div>
+                                        <div class="visualizer-bar" style="height: 60%"></div>
+                                        <div class="visualizer-bar" style="height: 80%"></div>
+                                        <div class="visualizer-bar" style="height: 45%"></div>
+                                        <div class="visualizer-bar" style="height: 100%"></div>
+                                        <div class="visualizer-bar" style="height: 70%"></div>
+                                        <div class="visualizer-bar" style="height: 85%"></div>
+                                    </div>
+                                    <div class="visualizer-footer">
+                                        <span>TCP Bandwidth: 100 Mbps (Simulated)</span>
+                                        <span>Latency: ~2ms</span>
+                                        <span>Buffer Status: Optimal</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-card glass-card flex-1">
+                                <div class="card-header">
+                                    <h4>
+                                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                        Server Specs & Socket Info
+                                    </h4>
+                                </div>
+                                <div class="server-specs-list">
+                                    <div class="spec-item">
+                                        <span>Architecture:</span>
+                                        <strong>Centralized Client-Server</strong>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span>Socket Implementation:</span>
+                                        <strong>Event-Driven Multiplexing</strong>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span>Max Concurrent Sockets:</span>
+                                        <strong>100 Clients</strong>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span>Broadcast Mechanism:</span>
+                                        <strong>Iterative Socket Fan-out</strong>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span>Local Storage Backup:</span>
+                                        <strong>Enabled</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- 3. CLIENTS MANAGER VIEW -->
+                <section id="clients-view" class="view-panel">
+                    <div class="clients-manager-container">
+                        <div class="view-header flex-between">
+                            <div>
+                                <h2>Simulated Clients Manager</h2>
+                                <p>Manage, inspect, and toggle status of active connected clients.</p>
+                            </div>
+                            <button class="btn btn-primary" onclick="promptAddClient()">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                Connect New Client
+                            </button>
+                        </div>
+
+                        <div class="table-card glass-card">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Client Name</th>
+                                        <th>Simulated IP</th>
+                                        <th>Port</th>
+                                        <th>Status</th>
+                                        <th>Messages Sent</th>
+                                        <th>Connect Time</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clients-table-body">
+                                    <!-- Dynamic Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. SERVER CONTROLS VIEW -->
+                <section id="server-view" class="view-panel">
+                    <div class="server-control-container">
+                        <div class="view-header">
+                            <h2>Server Administration & Controls</h2>
+                            <p>Configure socket listener parameters and control the core server lifecycle.</p>
+                        </div>
+
+                        <div class="control-cards-grid">
+                            <div class="card glass-card">
+                                <h3>Server Lifecycle</h3>
+                                <p>Start, halt, or reboot the server socket process.</p>
+                                <div class="button-group-vertical">
+                                    <button class="btn btn-success" onclick="connectServer()">
+                                        <span class="dot green"></span> Start / Connect Server
+                                    </button>
+                                    <button class="btn btn-warning" onclick="restartServer()">
+                                        <span class="dot yellow"></span> Restart Server Process
+                                    </button>
+                                    <button class="btn btn-danger" onclick="disconnectServer()">
+                                        <span class="dot red"></span> Disconnect / Stop Listener
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="card glass-card">
+                                <h3>Socket Listener Settings</h3>
+                                <div class="form-group">
+                                    <label>Listen Host IP</label>
+                                    <input type="text" value="127.0.0.1" readonly class="input-readonly">
+                                </div>
+                                <div class="form-group">
+                                    <label>Listen Port</label>
+                                    <input type="number" id="setting-server-port" value="8080" onchange="updateServerConfig()">
+                                </div>
+                                <div class="form-group">
+                                    <label>Max Backlog Queue</label>
+                                    <input type="number" value="128" readonly class="input-readonly">
+                                </div>
+                            </div>
+
+                            <div class="card glass-card flex-2">
+                                <h3>Socket Event Handlers Map</h3>
+                                <div class="code-preview">
+<pre><code>// Socket Event Registration Mapping
+server.on('<span class="token-event">connection</span>', (socket) => {
+    logActivity(`Client ${socket.name} connected from ${socket.ip}`);
+    broadcast('<span class="token-event">user_joined</span>', socket.getMeta());
+});
+
+server.on('<span class="token-event">message</span>', (packet) => {
+    if (packet.target === 'ALL') {
+        broadcast('<span class="token-event">chat_broadcast</span>', packet);
+    } else {
+        unicast('<span class="token-event">private_chat</span>', packet.target, packet);
+    }
+});
+
+server.on('<span class="token-event">disconnect</span>', (socket) => {
+    broadcast('<span class="token-event">user_left</span>', socket.name);
+});</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. NETWORK INFORMATION VIEW -->
+                <section id="network-view" class="view-panel">
+                    <div class="network-info-container">
+                        <div class="view-header">
+                            <h2>Computer Networks Concepts & Architecture</h2>
+                            <p>Educational overview of the socket communication model implemented in this project.</p>
+                        </div>
+
+                        <!-- Architecture Visualizer -->
+                        <div class="architecture-card glass-card">
+                            <h3>Client-Server Architecture Topology</h3>
+                            <div class="topology-diagram">
+                                <div class="client-node">
+                                    <div class="node-icon">💻</div>
+                                    <span>Client 1 (Shyam)</span>
+                                    <small>192.168.1.101</small>
+                                </div>
+                                <div class="client-node">
+                                    <div class="node-icon">💻</div>
+                                    <span>Client 2 (Rahul)</span>
+                                    <small>192.168.1.102</small>
+                                </div>
+
+                                <div class="central-server-node">
+                                    <div class="server-core glow-pulse">
+                                        <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" fill="none" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                                        <span>Central Chat Server</span>
+                                        <strong>127.0.0.1:8080</strong>
+                                    </div>
+                                    <div class="broadcast-flow">
+                                        <span>Broadcast Fan-Out</span>
+                                    </div>
+                                </div>
+
+                                <div class="client-node">
+                                    <div class="node-icon">💻</div>
+                                    <span>Client 3 (Priya)</span>
+                                    <small>192.168.1.103</small>
+                                </div>
+                                <div class="client-node">
+                                    <div class="node-icon">💻</div>
+                                    <span>Client 4 (Arjun)</span>
+                                    <small>192.168.1.104</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Network Concepts Cards -->
+                        <div class="concepts-grid">
+                            <div class="concept-card glass-card">
+                                <h4>1. Socket Connection & Handshake</h4>
+                                <p>Clients establish a TCP full-duplex socket channel with the server using IP address and Port number. Once established, both parties can send messages at any time.</p>
+                            </div>
+                            <div class="concept-card glass-card">
+                                <h4>2. Message Broadcasting</h4>
+                                <p>When a client sends a message destined for <code>ALL</code>, the central server receives the payload packet and iterates through all active client socket descriptors to forward the message.</p>
+                            </div>
+                            <div class="concept-card glass-card">
+                                <h4>3. Unicasting (Private Messaging)</h4>
+                                <p>If a message target is specified (e.g. <code>Rahul</code>), the server bypasses general broadcast and delivers the message packet strictly to the recipient's socket handle.</p>
+                            </div>
+                            <div class="concept-card glass-card">
+                                <h4>4. Connection State Tracking</h4>
+                                <p>The server tracks active sockets, heartbeats, and disconnections to maintain an updated active client directory for all connected peers.</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- 6. ACTIVITY LOGS VIEW -->
+                <section id="logs-view" class="view-panel">
+                    <div class="logs-container">
+                        <div class="view-header flex-between">
+                            <div>
+                                <h2>Server Activity Logs & Console</h2>
+                                <p>Real-time audit trail of socket events, message broadcasts, and system errors.</p>
+                            </div>
+                            <div class="log-actions">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="exportLogs()">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    Export Logs
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="clearActivityLogs()">
+                                    Clear Logs
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="terminal-card glass-card">
+                            <div class="terminal-header">
+                                <div class="window-buttons">
+                                    <span class="btn-circle red"></span>
+                                    <span class="btn-circle yellow"></span>
+                                    <span class="btn-circle green"></span>
+                                </div>
+                                <span class="terminal-title">net_server_activity.log — stdout</span>
+                                <div class="terminal-filter">
+                                    <select id="log-filter-select" onchange="renderActivityLogs()">
+                                        <option value="ALL">All Events</option>
+                                        <option value="CONNECTION">Connections</option>
+                                        <option value="MESSAGE">Messages</option>
+                                        <option value="BROADCAST">Broadcasts</option>
+                                        <option value="SERVER">Server Lifecycle</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="terminal-body" class="terminal-body">
+                                <!-- Dynamic Log Lines populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. SETTINGS VIEW -->
+                <section id="settings-view" class="view-panel">
+                    <div class="settings-container">
+                        <div class="view-header">
+                            <h2>Simulation & Application Settings</h2>
+                            <p>Configure network latency simulation, bot responses, and local storage state.</p>
+                        </div>
+
+                        <div class="settings-cards-grid">
+                            <div class="card glass-card">
+                                <h3>Network Latency Simulation</h3>
+                                <div class="form-group">
+                                    <label for="setting-latency">Simulated Propagation Delay (ms)</label>
+                                    <select id="setting-latency" onchange="updateSimulationSettings()">
+                                        <option value="0" selected>0 ms (Instant Local)</option>
+                                        <option value="150">150 ms (LAN Delay)</option>
+                                        <option value="500">500 ms (WAN Latency)</option>
+                                        <option value="1000">1000 ms (High Latency Link)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="card glass-card">
+                                <h3>Automated Bot Responses</h3>
+                                <div class="form-group flex-between">
+                                    <div>
+                                        <strong>Auto-Reply from Simulated Clients</strong>
+                                        <p class="setting-desc">Simulated clients (Rahul, Priya, etc.) will send automatic contextual replies when broadcasted to.</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" id="setting-auto-reply" checked onchange="updateSimulationSettings()">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="card glass-card">
+                                <h3>Data Management</h3>
+                                <p>Reset chat history, reset metrics, or clear local storage cache.</p>
+                                <div class="button-group">
+                                    <button class="btn btn-outline-danger" onclick="resetAllAppData()">
+                                        Reset All Application Data
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
